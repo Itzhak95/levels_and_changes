@@ -1,3 +1,7 @@
+from scipy.stats import bootstrap
+from statistics import mean
+import numpy as np
+
 # INPUT THE DATA
 
 # To convert into lists: https://capitalizemytitle.com/tools/column-to-comma-separated-list/
@@ -21,60 +25,70 @@ low_beliefs = [35,45,30,50]
 high_beliefs = [60, 40, 40]
 
 # PRELIMINARY CHECKS
-print('------------------')
-print('PRELIMINARY CHECKS')
-print('Share who want an increase in low signal group:')
-print(sum(increase_low)/len(increase_low))
-print('Share who want an increase in high signal group:')
-print(sum(increase_high)/len(increase_high))
-print('Average ideal point:')
-print(sum(ideal_points)/len(ideal_points))
-print('Average belief in low signal group:')
-print(sum(low_beliefs)/len(low_beliefs))
-print('Average belief in high signal group:')
-print(sum(high_beliefs)/len(high_beliefs))
 
-print('------------------')
+print('CHECKS')
+print(f'Share who want an increase in low signal group: {mean(increase_low)}')
+print(f'Share who want an increase in high signal group: {mean(increase_high)}')
+print(f'Average ideal point: {mean(ideal_points)}')
+print(f'Average belief in low signal group: {mean(low_beliefs)}')
+print(f'Average belief in high signal group: {mean(high_beliefs)}')
+print('---')
 
-# ANALYSIS
+# ESTIMATE
 
-# First, let's store calculate the actual effect (we always do "Low minus High")
+print('ESTIMATE')
 
-actual_difference = sum(increase_low) / len(increase_low) - sum(increase_high) / len(increase_high)
-print(f'Actual effect: {actual_difference}')
+# This function calculates the share whose ideal point exceeds their belief
 
-# Now, let's calculate the theoretically predicted effect
+def predicted_share(p_beliefs):
+    num_pairs = 0
+    ideal_exceeds_actual = 0
+    for belief in p_beliefs:
+        for ideal in ideal_points:
+            num_pairs += 1
+            if ideal > belief:
+                ideal_exceeds_actual += 1
+    return ideal_exceeds_actual/num_pairs
 
-# Start with the low group:
+# We can now calculate our estimate
 
-num_pairs = 0
-ideal_exceeds_actual = 0
-
-for belief in low_beliefs:
-    for ideal in ideal_points:
-        num_pairs += 1
-        if ideal > belief:
-            ideal_exceeds_actual += 1
-predicted_low = ideal_exceeds_actual/num_pairs
-
-# Now do the same for the high group:
-
-num_pairs = 0
-ideal_exceeds_actual = 0
-
-for belief in high_beliefs:
-    for ideal in ideal_points:
-        num_pairs += 1
-        if ideal > belief:
-            ideal_exceeds_actual += 1
-predicted_high = ideal_exceeds_actual/num_pairs
-
-# This yields the predicted difference and thus DiD:
-
-predicted_difference = predicted_low - predicted_high
-
+actual_difference = mean(increase_low) - mean(increase_high)
+print(f'Actual difference: {actual_difference}')
+predicted_difference = predicted_share(low_beliefs) - predicted_share(high_beliefs)
 print(f'Predicted difference: {predicted_difference}')
-
 did = predicted_difference - actual_difference
-
 print(f'Difference in difference: {did}')
+print('---')
+
+# CONFIDENCE INTERVALS
+print('CONFIDENCE INTERVAL')
+
+# Put the data in a suitable form
+
+increase_low = np.array(increase_low)
+increase_high = np.array(increase_high)
+ideal_points = np.array(ideal_points)
+low_beliefs = np.array(low_beliefs)
+high_beliefs = np.array(high_beliefs)
+
+# Define the estimator
+
+def estimator(increase_low, increase_high, ideal_points, low_beliefs, high_beliefs):
+    actual_difference = mean(increase_low) - mean(increase_high)
+    predicted_difference = predicted_share(low_beliefs) - predicted_share(high_beliefs)
+    did = predicted_difference - actual_difference
+    return did
+
+# Now do the bootstrap
+bootstrap_ci = bootstrap((increase_low, increase_high, ideal_points, low_beliefs, high_beliefs), estimator, confidence_level=0.95, method='basic')
+
+# View 95% bootstrapped confidence interval
+interval = bootstrap_ci.confidence_interval
+print(interval)
+
+print(f'SE: {bootstrap_ci.standard_error}')
+
+#As a final check, look at midpoint of the interval:
+print('---')
+print('MIDPOINT')
+print((interval.low + interval.high)/2)
