@@ -13,7 +13,7 @@ increase_low = [0,1,1,1]
 increase_high = [0,0,1]
 
 # (2) Enter the ideal points
-# The variables: Q46 (min_wage), Q50 (taxes), Q54 (refugees), Q58 (benefits), Q62 (NHS)
+# The variables: Q46 (min_wage), Q50 (taxes), Q54 (refugees), Q58 (benefits)
 # To get this from STATA, run (e.g.): browse Q46 if treatment == 1
 
 ideal_points = [40.00,40.00,45.00]
